@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Family Hub</title>
+<title>Hub</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -132,7 +132,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 <!-- LOGIN -->
 <div class="login" id="login">
   <div class="login-card">
-    <div class="login-title">Family Hub</div>
+    <div class="login-title">Hub</div>
     <div class="login-sub">Shopping · Appointments · Tasks</div>
     <div class="user-btns">
       <button class="user-btn" onclick="login('Sanju','#7c3aed')">
@@ -150,7 +150,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 <!-- APP -->
 <div class="app" id="app">
   <div class="header">
-    <div class="app-title">Family Hub</div>
+    <div class="app-title">Hub</div>
     <div class="user-pill" onclick="switchUser()">
       <div class="pill-avatar" id="hdr-avatar"></div>
       <span class="pill-name" id="hdr-name"></span>
@@ -249,8 +249,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 // Replace these with your own Supabase project URL and anon key
 // Create 3 tables: shopping_items, appointments, household_tasks
 // See SQL setup at the bottom of this script
-const SURL = 'YOUR_SUPABASE_URL';
-const SKEY = 'YOUR_SUPABASE_ANON_KEY';
+const SURL = 'https://nynvvnkaphtkdjtmtvzd.supabase.co';
+const SKEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55bnZ2bmthcGh0a2RqdG10dnpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODczMTMsImV4cCI6MjA5NTY2MzMxM30.q3bA49yShV4ZODMN_76hr36XFFnrL_T2V1cr534UTYU';
 
 // ── FALLBACK: localStorage so the app works immediately without Supabase ──
 let useLocal = false;
@@ -266,7 +266,7 @@ function saveLocal(table) {
 
 let db = null;
 try {
-  if (SURL !== 'YOUR_SUPABASE_URL') {
+  if (SURL !== 'https://nynvvnkaphtkdjtmtvzd.supabase.co') {
     const {createClient} = supabase;
     db = createClient(SURL, SKEY);
   } else {
@@ -667,7 +667,7 @@ if (savedUser && USERS[savedUser]) login(savedUser);
 
 if (useLocal) {
   console.info(
-    '%c Family Hub is running in offline mode (localStorage). ' +
+    '%c Hub is running in offline mode (localStorage). ' +
     'To sync between Sanju & Raki's devices, add your Supabase URL and anon key at the top of the script. ' +
     'See SQL setup instructions below.',
     'background:#fef3c7;color:#92400e;padding:4px 8px;border-radius:4px'
