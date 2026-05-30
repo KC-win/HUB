@@ -85,10 +85,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .badge-red{background:var(--red-bg);color:var(--red)}
 .item-by{font-size:11px;color:var(--muted)}
 .item-actions{display:flex;gap:4px;opacity:0;transition:opacity .15s}
-.item:hover .item-actions{opacity:1}
+.item:hover .item-actions, .appt-card:hover .appt-actions{opacity:1}
 .act-btn{width:28px;height:28px;border-radius:8px;border:none;background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .15s}
 .act-btn:hover{background:var(--surface2);color:var(--text)}
 .act-btn.del:hover{background:var(--red-bg);color:var(--red)}
+
+/* EDIT INLINE MODE */
+.edit-mode-input{width:100%;font-family:var(--font);font-size:15px;padding:6px 8px;border:1px solid var(--accent);border-radius:6px;outline:none;background:var(--surface);color:var(--text)}
+.edit-mode-row{display:flex;gap:6px;align-items:center;margin-top:4px}
 
 /* APPOINTMENTS */
 .appt-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;display:flex;gap:14px;animation:fadeIn .2s ease;transition:all .2s}
@@ -100,8 +104,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .appt-title{font-size:15px;font-weight:600}
 .appt-time{font-size:13px;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:6px}
 .appt-alert{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;background:var(--amber-bg);color:var(--amber);margin-top:4px}
-.appt-actions{display:flex;flex-direction:column;gap:4px;opacity:0;transition:opacity .15s}
-.appt-card:hover .appt-actions{opacity:1}
+.appt-actions{display:flex;gap:4px;opacity:0;transition:opacity .15s}
 
 /* TASKS */
 .priority-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
@@ -244,7 +247,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 const SURL = 'https://nynvvnkaphtkdjtmtvzd.supabase.co';
 const SKEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55bnZ2bmthcGh0a2RqdG10dnpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODczMTMsImV4cCI6MjA5NTY2MzMxM30.q3bA49yShV4ZODMN_76hr36XFFnrL_T2V1cr534UTYU';
 
-// ── APP VARIABLES & FALLBACK CONFIGURATION ─────────────────────────────────
+// ── FALLBACK MAPS ──────────────────────────────────────────────────────────
 let useLocal = false;
 let localDB = {
   shopping_items: JSON.parse(localStorage.getItem('fh_shopping') || '[]'),
@@ -271,6 +274,7 @@ let currentUser = null;
 let data = { shopping_items: [], appointments: [], household_tasks: [] };
 let alertTimers = {};
 let currentTab = 'shop';
+let editingItemId = null;
 
 // ── AUTH ───────────────────────────────────────────────────────────────────
 const USERS = {
@@ -366,6 +370,40 @@ function subscribeAll() {
   });
 }
 
+// ── INLINE EDIT MODE CONTROLLER ───────────────────────────────────────────
+function enableEditMode(id, currentTitle, table) {
+  editingItemId = id;
+  const container = document.getElementById(`title-area-${id}`);
+  if (!container) return;
+  
+  container.innerHTML = `
+    <div class="edit-mode-row">
+      <input type="text" class="edit-mode-input" id="edit-input-${id}" value="${esc(currentTitle)}" onkeydown="if(event.key==='Enter') saveInlineEdit('${id}', '${table}')">
+      <button class="add-btn" style="padding: 5px 10px; font-size: 12px;" onclick="saveInlineEdit('${id}', '${table}')">Save</button>
+      <button class="cancel-btn" style="padding: 5px 10px; font-size: 12px;" onclick="renderAll()">Cancel</button>
+    </div>
+  `;
+  setTimeout(() => document.getElementById(`edit-input-${id}`).focus(), 50);
+}
+
+async function saveInlineEdit(id, table) {
+  const input = document.getElementById(`edit-input-${id}`);
+  if (!input) return;
+  const newTitle = input.value.trim();
+  if (!newTitle) return;
+
+  const { error } = await dbUpdate(table, id, { title: newTitle });
+  if (error) { showToast('Error updating item'); return; }
+  
+  if (useLocal) {
+    const { data: updatedRows } = await dbSelect(table);
+    data[table] = updatedRows;
+  }
+  editingItemId = null;
+  renderAll();
+  showToast('Updated successfully ✓');
+}
+
 // ── SHOPPING ───────────────────────────────────────────────────────────────
 async function addShop() {
   const input = document.getElementById('shop-input');
@@ -414,12 +452,15 @@ function shopItemHTML(r) {
       <svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4.5l3 3L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
     <div class="item-body">
-      <div class="item-title">${esc(r.title)}</div>
+      <div id="title-area-${r.id}">
+         <div class="item-title">${esc(r.title)}</div>
+      </div>
       <div class="item-meta">
         <span class="item-by">${r.added_by === currentUser.name ? 'You' : esc(r.added_by || '')} added${isDone && r.done_by ? ` · bought by ${r.done_by === currentUser.name ? 'you' : esc(r.done_by)}` : ''}</span>
       </div>
     </div>
     <div class="item-actions">
+      <button class="act-btn" title="Edit" onclick="enableEditMode('${r.id}', \`${esc(r.title.replace(/`/g, '\\`'))}\`, 'shopping_items')">✏️</button>
       <button class="act-btn del" onclick="delShop('${r.id}')">✕</button>
     </div>
   </div>`;
@@ -511,7 +552,9 @@ function apptHTML(a) {
       <div class="appt-day">${dayNum}</div>
     </div>
     <div class="appt-body">
-      <div class="appt-title">${esc(a.title)}</div>
+      <div id="title-area-${a.id}">
+         <div class="appt-title">${esc(a.title)}</div>
+      </div>
       <div class="appt-time">
         ${timeStr ? `<span>⏰ ${timeStr}</span>` : ''}
         ${dayName ? `<span>${dayName}</span>` : ''}
@@ -521,6 +564,7 @@ function apptHTML(a) {
       <div style="font-size:11px;color:var(--muted);margin-top:4px">Added by ${a.added_by === currentUser.name ? 'you' : esc(a.added_by || '')}</div>
     </div>
     <div class="appt-actions">
+      <button class="act-btn" title="Edit" onclick="enableEditMode('${a.id}', \`${esc(a.title.replace(/`/g, '\\`'))}\`, 'appointments')">✏️</button>
       <button class="act-btn del" onclick="delAppt('${a.id}')">✕</button>
     </div>
   </div>`;
@@ -608,13 +652,16 @@ function taskItemHTML(r) {
       <svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4.5l3 3L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
     <div class="item-body">
-      <div class="item-title">${esc(r.title)}</div>
+      <div id="title-area-${r.id}">
+         <div class="item-title">${esc(r.title)}</div>
+      </div>
       <div class="item-meta">
         <span class="badge ${CAT_BADGE[r.category] || ''}">${catEmoji} ${esc(r.category || 'Other')}</span>
         <span class="item-by">${r.added_by === currentUser.name ? 'You' : esc(r.added_by || '')}${isDone && r.done_by ? ` · done by ${r.done_by === currentUser.name ? 'you' : esc(r.done_by)}` : ''}</span>
       </div>
     </div>
     <div class="item-actions">
+      <button class="act-btn" title="Edit" onclick="enableEditMode('${r.id}', \`${esc(r.title.replace(/`/g, '\\`'))}\`, 'household_tasks')">✏️</button>
       <button class="act-btn del" onclick="delTask('${r.id}')">✕</button>
     </div>
   </div>`;
@@ -632,6 +679,7 @@ function renderList(elId, items, htmlFn, type) {
   el.innerHTML = items.map(r => htmlFn(r)).join('');
 }
 
+// Keep active tab state accurate even when items refresh
 function setTab(tab) {
   currentTab = tab;
   ['shop','appt','tasks'].forEach(t => {
@@ -655,10 +703,6 @@ function showToast(msg) {
 // ── INIT ───────────────────────────────────────────────────────────────────
 const savedUser = localStorage.getItem('fh_user');
 if (savedUser && USERS[savedUser]) login(savedUser);
-
-if (useLocal) {
-  console.info('Hub running in fallback localStorage mode.');
-}
 </script>
 </body>
 </html>
