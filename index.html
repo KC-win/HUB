@@ -75,4 +75,590 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .check.checked svg{display:block}
 .item-body{flex:1;min-width:0}
 .item-title{font-size:15px;font-weight:400;color:var(--text);transition:all .15s}
-.done-item .item-title{text-decoration:line-through;color:
+.done-item .item-title{text-decoration:line-through;color:var(--muted)}
+.item-meta{display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap}
+.badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px}
+.badge-accent{background:var(--accent-bg);color:var(--accent)}
+.badge-green{background:var(--green-bg);color:var(--green)}
+.badge-amber{background:var(--amber-bg);color:var(--amber)}
+.badge-purple{background:var(--purple-bg);color:var(--purple)}
+.badge-red{background:var(--red-bg);color:var(--red)}
+.item-by{font-size:11px;color:var(--muted)}
+.item-actions{display:flex;gap:4px;opacity:0;transition:opacity .15s}
+.item:hover .item-actions{opacity:1}
+.act-btn{width:28px;height:28px;border-radius:8px;border:none;background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .15s}
+.act-btn:hover{background:var(--surface2);color:var(--text)}
+.act-btn.del:hover{background:var(--red-bg);color:var(--red)}
+
+/* APPOINTMENTS */
+.appt-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;display:flex;gap:14px;animation:fadeIn .2s ease;transition:all .2s}
+.appt-card.past{opacity:.5}
+.appt-date-block{flex-shrink:0;width:52px;text-align:center;background:var(--accent-bg);border-radius:10px;padding:8px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.appt-month{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--accent)}
+.appt-day{font-size:24px;font-weight:800;color:var(--accent);line-height:1}
+.appt-body{flex:1;min-width:0}
+.appt-title{font-size:15px;font-weight:600}
+.appt-time{font-size:13px;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:6px}
+.appt-alert{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;background:var(--amber-bg);color:var(--amber);margin-top:4px}
+.appt-actions{display:flex;flex-direction:column;gap:4px;opacity:0;transition:opacity .15s}
+.appt-card:hover .appt-actions{opacity:1}
+
+/* TASKS */
+.priority-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.p-high{background:#ef4444}
+.p-med{background:#f59e0b}
+.p-low{background:#22c55e}
+
+/* EMPTY */
+.empty{text-align:center;padding:48px 20px;color:var(--muted)}
+.empty-icon{font-size:36px;margin-bottom:10px;opacity:.5}
+.empty-text{font-size:15px;font-weight:500}
+.empty-sub{font-size:13px;margin-top:4px;opacity:.7}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--text);color:var(--bg);border-radius:10px;padding:11px 20px;font-size:13px;font-weight:500;z-index:999;transition:transform .3s;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* DIVIDER */
+.divider{height:1px;background:var(--border);margin:16px 0}
+
+/* Alert hint */
+.alert-hint{font-size:12px;color:var(--muted);margin-top:4px;background:var(--amber-bg);border-radius:8px;padding:8px 12px;display:none}
+.alert-hint.show{display:block}
+</style>
+</head>
+<body>
+
+<div class="login" id="login">
+  <div class="login-card">
+    <div class="login-title">Hub</div>
+    <div class="login-sub">Shopping · Appointments · Tasks</div>
+    <div class="user-btns">
+      <button class="user-btn" onclick="login('Sanju')">
+        <div class="avatar" style="background:#7c3aed">S</div>
+        <span>Sanju</span>
+      </button>
+      <button class="user-btn" onclick="login('Raki')">
+        <div class="avatar" style="background:#4f6ef7">R</div>
+        <span>Raki</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="app" id="app">
+  <div class="header">
+    <div class="app-title">Hub</div>
+    <div class="user-pill" onclick="switchUser()">
+      <div class="pill-avatar" id="hdr-avatar"></div>
+      <span class="pill-name" id="hdr-name"></span>
+      <span class="pill-switch">switch</span>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" id="tab-shop" onclick="setTab('shop')">🛒 Shopping</button>
+    <button class="tab" id="tab-appt" onclick="setTab('appt')">📅 Appointments<span class="tab-badge" id="appt-badge" style="display:none">0</span></button>
+    <button class="tab" id="tab-tasks" onclick="setTab('tasks')">📋 Tasks</button>
+  </div>
+
+  <div id="pane-shop">
+    <div class="add-box">
+      <div class="add-row">
+        <input class="add-input" id="shop-input" placeholder="Add item to buy…" oninput="toggleAddBtn('shop-add','shop-input')" onkeydown="if(event.key==='Enter')addShop()">
+        <button class="add-btn" id="shop-add" onclick="addShop()" disabled>Add</button>
+      </div>
+    </div>
+    <div class="section-label" id="shop-pending-label">To buy</div>
+    <div class="items" id="shop-pending"></div>
+    <div class="divider" id="shop-divider" style="display:none"></div>
+    <div class="section-label" id="shop-done-label" style="display:none">Bought</div>
+    <div class="items" id="shop-done"></div>
+  </div>
+
+  <div id="pane-appt" style="display:none">
+    <div class="add-box" id="appt-add-box">
+      <div class="add-row">
+        <input class="add-input" id="appt-input" placeholder="Appointment title (e.g. Dentist – Aarav)…" oninput="handleApptInput()" onkeydown="if(event.key==='Enter')addAppt()">
+        <button class="add-btn" id="appt-add" onclick="addAppt()" disabled>Add</button>
+      </div>
+      <div class="add-extras" id="appt-extras">
+        <input type="date" class="date-in" id="appt-date">
+        <input type="time" class="date-in" id="appt-time">
+        <select class="add-select" id="appt-for">
+          <option value="Family">👨‍👩‍👧 Family</option>
+          <option value="Aarav">🧒 Aarav</option>
+          <option value="Aanya">🧒 Aanya</option>
+          <option value="Sanju">👩 Sanju</option>
+          <option value="Raki">👨 Raki</option>
+        </select>
+        <label style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input type="checkbox" id="appt-alert" style="width:16px;height:16px;cursor:pointer" onchange="toggleAlertHint()"> 
+          🔔 Alert 15 min before
+        </label>
+        <button class="cancel-btn" onclick="hideApptExtras()">Cancel</button>
+      </div>
+      <div class="alert-hint" id="alert-hint">⚠️ Browser alerts work when the app is open. For push alerts, your device must allow notifications for this page. Grant permission when prompted.</div>
+    </div>
+    <div class="section-label">Upcoming</div>
+    <div id="appt-upcoming"></div>
+    <div class="divider" id="appt-divider" style="display:none"></div>
+    <div class="section-label" id="appt-past-label" style="display:none">Past</div>
+    <div id="appt-past"></div>
+  </div>
+
+  <div id="pane-tasks" style="display:none">
+    <div class="add-box">
+      <div class="add-row">
+        <input class="add-input" id="task-input" placeholder="Add a task (e.g. Fix roof, Paint bedroom)…" oninput="handleTaskInput()" onkeydown="if(event.key==='Enter')addTask()">
+        <button class="add-btn" id="task-add" onclick="addTask()" disabled>Add</button>
+      </div>
+      <div class="add-extras" id="task-extras">
+        <select class="add-select" id="task-priority">
+          <option value="med">🟡 Medium</option>
+          <option value="high">🔴 High priority</option>
+          <option value="low">🟢 Low priority</option>
+        </select>
+        <select class="add-select" id="task-cat">
+          <option value="House">🏠 House</option>
+          <option value="Garden">🌿 Garden</option>
+          <option value="Car">🚗 Car</option>
+          <option value="Finance">💰 Finance</option>
+          <option value="Other">📌 Other</option>
+        </select>
+        <button class="cancel-btn" onclick="hideTaskExtras()">Cancel</button>
+      </div>
+    </div>
+    <div class="section-label">Pending</div>
+    <div class="items" id="task-pending"></div>
+    <div class="divider" id="task-divider" style="display:none"></div>
+    <div class="section-label" id="task-done-label" style="display:none">Done</div>
+    <div class="items" id="task-done"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONFIG ─────────────────────────────────────────────────────────────────
+const SURL = 'https://nynvvnkaphtkdjtmtvzd.supabase.co';
+const SKEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55bnZ2bmthcGh0a2RqdG10dnpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODczMTMsImV4cCI6MjA5NTY2MzMxM30.q3bA49yShV4ZODMN_76hr36XFFnrL_T2V1cr534UTYU';
+
+// ── APP VARIABLES & FALLBACK CONFIGURATION ─────────────────────────────────
+let useLocal = false;
+let localDB = {
+  shopping_items: JSON.parse(localStorage.getItem('fh_shopping') || '[]'),
+  appointments:   JSON.parse(localStorage.getItem('fh_appts') || '[]'),
+  household_tasks:JSON.parse(localStorage.getItem('fh_tasks') || '[]'),
+};
+function saveLocal(table) {
+  const keys = {shopping_items:'fh_shopping',appointments:'fh_appts',household_tasks:'fh_tasks'};
+  localStorage.setItem(keys[table], JSON.stringify(localDB[table]));
+}
+
+let db = null;
+try {
+  if (SURL && SURL.trim() !== '' && SURL !== 'https://nynvvnkaphtkdjtmtvzd.supabase.co') {
+    const {createClient} = supabase;
+    db = createClient(SURL, SKEY);
+  } else {
+    useLocal = true;
+  }
+} catch(e) { useLocal = true; }
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+let currentUser = null;
+let data = { shopping_items: [], appointments: [], household_tasks: [] };
+let alertTimers = {};
+let currentTab = 'shop';
+
+// ── AUTH ───────────────────────────────────────────────────────────────────
+const USERS = {
+  Sanju: { color: '#7c3aed', initial: 'S' },
+  Raki:  { color: '#4f6ef7', initial: 'R' },
+};
+
+function login(name) {
+  currentUser = { name, ...USERS[name] };
+  localStorage.setItem('fh_user', name);
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('hdr-avatar').textContent = currentUser.initial;
+  document.getElementById('hdr-avatar').style.background = currentUser.color;
+  document.getElementById('hdr-name').textContent = name;
+  loadAll();
+  if (!useLocal) subscribeAll();
+  requestNotifPermission();
+}
+
+function switchUser() {
+  localStorage.removeItem('fh_user');
+  currentUser = null;
+  clearAlertTimers();
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login').style.display = 'flex';
+}
+
+function requestNotifPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+// ── DB ABSTRACTION ─────────────────────────────────────────────────────────
+async function dbSelect(table) {
+  if (useLocal) return { data: localDB[table], error: null };
+  return await db.from(table).select('*').order('created_at', { ascending: true });
+}
+async function dbInsert(table, row) {
+  if (useLocal) {
+    const item = { ...row, id: 'local_' + Date.now() + '_' + Math.random().toString(36).slice(2), created_at: new Date().toISOString() };
+    localDB[table].push(item);
+    saveLocal(table);
+    return { data: [item], error: null };
+  }
+  return await db.from(table).insert(row).select();
+}
+async function dbUpdate(table, id, patch) {
+  if (useLocal) {
+    const idx = localDB[table].findIndex(r => r.id === id);
+    if (idx >= 0) { localDB[table][idx] = { ...localDB[table][idx], ...patch }; saveLocal(table); }
+    return { error: null };
+  }
+  return await db.from(table).update(patch).eq('id', id);
+}
+async function dbDelete(table, id) {
+  if (useLocal) {
+    localDB[table] = localDB[table].filter(r => r.id !== id);
+    saveLocal(table);
+    return { error: null };
+  }
+  return await db.from(table).delete().eq('id', id);
+}
+
+// ── LOAD ───────────────────────────────────────────────────────────────────
+async function loadAll() {
+  const [s, a, t] = await Promise.all([
+    dbSelect('shopping_items'),
+    dbSelect('appointments'),
+    dbSelect('household_tasks'),
+  ]);
+  if (s.data) data.shopping_items = s.data;
+  if (a.data) data.appointments = a.data;
+  if (t.data) data.household_tasks = t.data;
+  renderAll();
+  scheduleAllAlerts();
+}
+
+function renderAll() { renderShop(); renderAppts(); renderTasks(); }
+
+// ── REALTIME ───────────────────────────────────────────────────────────────
+function subscribeAll() {
+  ['shopping_items','appointments','household_tasks'].forEach(table => {
+    db.channel(table + '-ch').on('postgres_changes', { event: '*', schema: 'public', table }, p => {
+      const { eventType: et, new: nr, old: or } = p;
+      if (et === 'INSERT') { if (!data[table].find(r => r.id === nr.id)) data[table].push(nr); }
+      else if (et === 'UPDATE') { const i = data[table].findIndex(r => r.id === nr.id); if (i >= 0) data[table][i] = nr; }
+      else if (et === 'DELETE') { data[table] = data[table].filter(r => r.id !== or.id); }
+      renderAll();
+      if (table === 'appointments') scheduleAllAlerts();
+    }).subscribe();
+  });
+}
+
+// ── SHOPPING ───────────────────────────────────────────────────────────────
+async function addShop() {
+  const input = document.getElementById('shop-input');
+  const title = input.value.trim(); if (!title) return;
+  input.value = '';
+  document.getElementById('shop-add').disabled = true;
+  const { error } = await dbInsert('shopping_items', { title, done: false, added_by: currentUser.name });
+  if (error) { showToast('Error adding item'); return; }
+  if (useLocal) { const { data: s } = await dbSelect('shopping_items'); data.shopping_items = s; renderShop(); }
+  showToast('Added to shopping list ✓');
+}
+
+async function toggleShop(id) {
+  const item = data.shopping_items.find(r => r.id === id); if (!item) return;
+  const { error } = await dbUpdate('shopping_items', id, {
+    done: !item.done,
+    done_by: !item.done ? currentUser.name : null,
+    done_at: !item.done ? new Date().toISOString() : null
+  });
+  if (error) return;
+  if (useLocal) { const { data: s } = await dbSelect('shopping_items'); data.shopping_items = s; }
+  renderShop();
+}
+
+async function delShop(id) {
+  await dbDelete('shopping_items', id);
+  if (useLocal) { const { data: s } = await dbSelect('shopping_items'); data.shopping_items = s; }
+  renderShop(); showToast('Removed');
+}
+
+function renderShop() {
+  const pending = data.shopping_items.filter(r => !r.done);
+  const done    = data.shopping_items.filter(r =>  r.done);
+  renderList('shop-pending', pending, shopItemHTML, 'shopping');
+  renderList('shop-done', done, shopItemHTML, 'shopping');
+  document.getElementById('shop-divider').style.display = done.length ? '' : 'none';
+  document.getElementById('shop-done-label').style.display = done.length ? '' : 'none';
+  const lbl = document.getElementById('shop-pending-label');
+  lbl.textContent = pending.length ? `To buy (${pending.length})` : 'To buy';
+}
+
+function shopItemHTML(r) {
+  const isDone = r.done;
+  return `<div class="item ${isDone ? 'done-item' : ''}" id="item-${r.id}">
+    <button class="check ${isDone ? 'checked' : ''}" onclick="toggleShop('${r.id}')">
+      <svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4.5l3 3L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="item-body">
+      <div class="item-title">${esc(r.title)}</div>
+      <div class="item-meta">
+        <span class="item-by">${r.added_by === currentUser.name ? 'You' : esc(r.added_by || '')} added${isDone && r.done_by ? ` · bought by ${r.done_by === currentUser.name ? 'you' : esc(r.done_by)}` : ''}</span>
+      </div>
+    </div>
+    <div class="item-actions">
+      <button class="act-btn del" onclick="delShop('${r.id}')">✕</button>
+    </div>
+  </div>`;
+}
+
+// ── APPOINTMENTS ───────────────────────────────────────────────────────────
+function handleApptInput() {
+  const val = document.getElementById('appt-input').value.trim();
+  document.getElementById('appt-add').disabled = !val;
+  if (val) document.getElementById('appt-extras').classList.add('show');
+}
+function hideApptExtras() {
+  document.getElementById('appt-extras').classList.remove('show');
+  document.getElementById('appt-input').value = '';
+  document.getElementById('appt-add').disabled = true;
+  document.getElementById('alert-hint').classList.remove('show');
+  document.getElementById('appt-alert').checked = false;
+}
+function toggleAlertHint() {
+  const checked = document.getElementById('appt-alert').checked;
+  document.getElementById('alert-hint').classList.toggle('show', checked);
+}
+
+async function addAppt() {
+  const title = document.getElementById('appt-input').value.trim(); if (!title) return;
+  const date  = document.getElementById('appt-date').value;
+  const time  = document.getElementById('appt-time').value;
+  const forWho= document.getElementById('appt-for').value;
+  const alert15 = document.getElementById('appt-alert').checked;
+  const dt = date ? (time ? date + 'T' + time : date) : null;
+  const { error } = await dbInsert('appointments', {
+    title, date_time: dt, for_who: forWho, alert_15min: alert15, added_by: currentUser.name
+  });
+  if (error) { showToast('Error adding appointment'); return; }
+  hideApptExtras();
+  if (useLocal) { const { data: a } = await dbSelect('appointments'); data.appointments = a; }
+  renderAppts();
+  scheduleAllAlerts();
+  showToast('Appointment added ✓');
+  if (alert15 && dt) showToast('🔔 Alert will fire 15 min before');
+}
+
+async function delAppt(id) {
+  clearAlertTimer(id);
+  await dbDelete('appointments', id);
+  if (useLocal) { const { data: a } = await dbSelect('appointments'); data.appointments = a; }
+  renderAppts(); showToast('Removed');
+}
+
+const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+function renderAppts() {
+  const now = new Date();
+  const upcoming = data.appointments.filter(a => !a.date_time || new Date(a.date_time) >= now)
+    .sort((a, b) => (a.date_time || 'zzzz') < (b.date_time || 'zzzz') ? -1 : 1);
+  const past = data.appointments.filter(a => a.date_time && new Date(a.date_time) < now)
+    .sort((a, b) => a.date_time < b.date_time ? 1 : -1);
+
+  const upEl = document.getElementById('appt-upcoming');
+  const paEl = document.getElementById('appt-past');
+  upEl.innerHTML = upcoming.length ? upcoming.map(apptHTML).join('') : '<div class="empty"><div class="empty-icon">📅</div><div class="empty-text">No upcoming appointments</div><div class="empty-sub">Add one above</div></div>';
+  paEl.innerHTML = past.length ? past.map(apptHTML).join('') : '';
+  document.getElementById('appt-divider').style.display = past.length ? '' : 'none';
+  document.getElementById('appt-past-label').style.display = past.length ? '' : 'none';
+
+  const today = upcoming.filter(a => {
+    if (!a.date_time) return false;
+    const d = new Date(a.date_time); const t = new Date();
+    return d.getFullYear() === t.getFullYear() && d.getMonth() === t.getMonth() && d.getDate() === t.getDate();
+  }).length;
+  const badge = document.getElementById('appt-badge');
+  badge.textContent = today; badge.style.display = today > 0 ? 'inline' : 'none';
+}
+
+function apptHTML(a) {
+  const isPast = a.date_time && new Date(a.date_time) < new Date();
+  let dayNum = '—', month = '—', dayName = '', timeStr = '';
+  if (a.date_time) {
+    const d = new Date(a.date_time);
+    dayNum = d.getDate(); month = MONTHS_SHORT[d.getMonth()];
+    dayName = DAYS[d.getDay()];
+    timeStr = a.date_time.includes('T') ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'All day';
+  }
+  const forMap = { Family:'👨‍👩‍👧 Family', Aarav:'🧒 Aarav', Aanya:'🧒 Aanya', Sanju:'👩 Sanju', Raki:'👨 Raki' };
+  return `<div class="appt-card ${isPast ? 'past' : ''}">
+    <div class="appt-date-block">
+      <div class="appt-month">${month}</div>
+      <div class="appt-day">${dayNum}</div>
+    </div>
+    <div class="appt-body">
+      <div class="appt-title">${esc(a.title)}</div>
+      <div class="appt-time">
+        ${timeStr ? `<span>⏰ ${timeStr}</span>` : ''}
+        ${dayName ? `<span>${dayName}</span>` : ''}
+        <span class="badge badge-purple">${forMap[a.for_who] || a.for_who || ''}</span>
+      </div>
+      ${a.alert_15min && !isPast ? '<div class="appt-alert">🔔 Alert set 15 min before</div>' : ''}
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Added by ${a.added_by === currentUser.name ? 'you' : esc(a.added_by || '')}</div>
+    </div>
+    <div class="appt-actions">
+      <button class="act-btn del" onclick="delAppt('${a.id}')">✕</button>
+    </div>
+  </div>`;
+}
+
+// ── ALERTS ─────────────────────────────────────────────────────────────────
+function clearAlertTimers() { Object.values(alertTimers).forEach(clearTimeout); alertTimers = {}; }
+function clearAlertTimer(id) { if (alertTimers[id]) { clearTimeout(alertTimers[id]); delete alertTimers[id]; } }
+
+function scheduleAllAlerts() {
+  clearAlertTimers();
+  data.appointments.filter(a => a.alert_15min && a.date_time).forEach(a => {
+    const apptTime = new Date(a.date_time).getTime();
+    const alertTime = apptTime - 15 * 60 * 1000;
+    const msUntil = alertTime - Date.now();
+    if (msUntil > 0 && msUntil < 24 * 60 * 60 * 1000) {
+      alertTimers[a.id] = setTimeout(() => fireAlert(a), msUntil);
+    }
+  });
+}
+
+function fireAlert(appt) {
+  const title = `⏰ 15 min reminder`;
+  const body = `${appt.title} starts in 15 minutes`;
+  showToast(body);
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification(title, { body, icon: '' });
+  }
+}
+
+// ── HOUSEHOLD TASKS ────────────────────────────────────────────────────────
+function handleTaskInput() {
+  const val = document.getElementById('task-input').value.trim();
+  document.getElementById('task-add').disabled = !val;
+  if (val) document.getElementById('task-extras').classList.add('show');
+}
+function hideTaskExtras() {
+  document.getElementById('task-extras').classList.remove('show');
+  document.getElementById('task-input').value = '';
+  document.getElementById('task-add').disabled = true;
+}
+
+async function addTask() {
+  const title = document.getElementById('task-input').value.trim(); if (!title) return;
+  const priority = document.getElementById('task-priority').value;
+  const category = document.getElementById('task-cat').value;
+  const { error } = await dbInsert('household_tasks', { title, priority, category, done: false, added_by: currentUser.name });
+  if (error) { showToast('Error adding task'); return; }
+  hideTaskExtras();
+  if (useLocal) { const { data: t } = await dbSelect('household_tasks'); data.household_tasks = t; }
+  renderTasks(); showToast('Task added ✓');
+}
+
+async function toggleTask(id) {
+  const task = data.household_tasks.find(r => r.id === id); if (!task) return;
+  await dbUpdate('household_tasks', id, { done: !task.done, done_by: !task.done ? currentUser.name : null });
+  if (useLocal) { const { data: t } = await dbSelect('household_tasks'); data.household_tasks = t; }
+  renderTasks();
+}
+
+async function delTask(id) {
+  await dbDelete('household_tasks', id);
+  if (useLocal) { const { data: t } = await dbSelect('household_tasks'); data.household_tasks = t; }
+  renderTasks(); showToast('Removed');
+}
+
+const PRIO_COLOR = { high: 'p-high', med: 'p-med', low: 'p-low' };
+const CAT_BADGE  = { House:'badge-accent', Garden:'badge-green', Car:'badge-amber', Finance:'badge-purple', Other:'' };
+
+function renderTasks() {
+  const pending = data.household_tasks.filter(r => !r.done);
+  const done    = data.household_tasks.filter(r =>  r.done);
+  renderList('task-pending', pending, taskItemHTML, 'tasks');
+  renderList('task-done', done, taskItemHTML, 'tasks');
+  document.getElementById('task-divider').style.display = done.length ? '' : 'none';
+  document.getElementById('task-done-label').style.display = done.length ? '' : 'none';
+}
+
+function taskItemHTML(r) {
+  const isDone = r.done;
+  const catEmoji = {House:'🏠',Garden:'🌿',Car:'🚗',Finance:'💰',Other:'📌'}[r.category] || '📌';
+  return `<div class="item ${isDone ? 'done-item' : ''}">
+    <div class="priority-dot ${PRIO_COLOR[r.priority] || 'p-med'}"></div>
+    <button class="check ${isDone ? 'checked' : ''}" onclick="toggleTask('${r.id}')">
+      <svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4.5l3 3L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="item-body">
+      <div class="item-title">${esc(r.title)}</div>
+      <div class="item-meta">
+        <span class="badge ${CAT_BADGE[r.category] || ''}">${catEmoji} ${esc(r.category || 'Other')}</span>
+        <span class="item-by">${r.added_by === currentUser.name ? 'You' : esc(r.added_by || '')}${isDone && r.done_by ? ` · done by ${r.done_by === currentUser.name ? 'you' : esc(r.done_by)}` : ''}</span>
+      </div>
+    </div>
+    <div class="item-actions">
+      <button class="act-btn del" onclick="delTask('${r.id}')">✕</button>
+    </div>
+  </div>`;
+}
+
+// ── HELPERS ────────────────────────────────────────────────────────────────
+function renderList(elId, items, htmlFn, type) {
+  const el = document.getElementById(elId);
+  if (!items.length) {
+    if (elId.includes('pending')) {
+      el.innerHTML = `<div class="empty"><div class="empty-icon">${type==='shopping'?'🛒':type==='tasks'?'✅':'📅'}</div><div class="empty-text">${type==='shopping'?'Nothing to buy!':type==='tasks'?'All caught up!':'No upcoming'}</div></div>`;
+    } else { el.innerHTML = ''; }
+    return;
+  }
+  el.innerHTML = items.map(r => htmlFn(r)).join('');
+}
+
+function setTab(tab) {
+  currentTab = tab;
+  ['shop','appt','tasks'].forEach(t => {
+    document.getElementById('pane-' + t).style.display = t === tab ? '' : 'none';
+    document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+  });
+}
+
+function toggleAddBtn(btnId, inputId) {
+  document.getElementById(btnId).disabled = !document.getElementById(inputId).value.trim();
+}
+
+function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+let toastT;
+function showToast(msg) {
+  const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+const savedUser = localStorage.getItem('fh_user');
+if (savedUser && USERS[savedUser]) login(savedUser);
+
+if (useLocal) {
+  console.info('Hub running in fallback localStorage mode.');
+}
+</script>
+</body>
+</html>
