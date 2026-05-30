@@ -88,7 +88,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .item:hover .item-actions, .appt-card:hover .appt-actions{opacity:1}
 .act-btn{width:28px;height:28px;border-radius:8px;border:none;background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .15s}
 .act-btn:hover{background:var(--surface2);color:var(--text)}
-.act-btn.del:hover{background:var(--red-bg);color:var(--red)}
 
 /* EDIT INLINE MODE */
 .edit-mode-input{width:100%;font-family:var(--font);font-size:15px;padding:6px 8px;border:1px solid var(--accent);border-radius:6px;outline:none;background:var(--surface);color:var(--text)}
@@ -195,10 +194,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
           <option value="Sanju">👩 Sanju</option>
           <option value="Raki">👨 Raki</option>
         </select>
-        <label style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;cursor:pointer">
-          <input type="checkbox" id="appt-alert" style="width:16px;height:16px;cursor:pointer" onchange="toggleAlertHint()"> 
-          🔔 Alert 15 min before
-        </label>
+        <div style="display:flex; flex-direction:column; gap:6px; margin: 4px 0; width:100%;">
+          <label style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;cursor:pointer">
+            <input type="checkbox" id="appt-alert" style="width:16px;height:16px;cursor:pointer" onchange="toggleAlertHint()"> 
+            🔔 Alert 15 min before
+          </label>
+          <label style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;cursor:pointer">
+            <input type="checkbox" id="appt-repeat" style="width:16px;height:16px;cursor:pointer"> 
+            🔁 Repeat every week
+          </label>
+        </div>
         <button class="cancel-btn" onclick="hideApptExtras()">Cancel</button>
       </div>
       <div class="alert-hint" id="alert-hint">⚠️ Browser alerts work when the app is open. For push alerts, your device must allow notifications for this page. Grant permission when prompted.</div>
@@ -247,12 +252,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 const SURL = 'https://nynvvnkaphtkdjtmtvzd.supabase.co';
 const SKEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55bnZ2bmthcGh0a2RqdG10dnpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODczMTMsImV4cCI6MjA5NTY2MzMxM30.q3bA49yShV4ZODMN_76hr36XFFnrL_T2V1cr534UTYU';
 
-// ── FALLBACK MAPS ──────────────────────────────────────────────────────────
+// ── FALLBACK MAPS (Saves locally if Supabase defaults aren't updated) ──
 let useLocal = false;
 let localDB = {
   shopping_items: JSON.parse(localStorage.getItem('fh_shopping') || '[]'),
   appointments:   JSON.parse(localStorage.getItem('fh_appts') || '[]'),
-  household_tasks:JSON.parse(localStorage.getItem('fh_tasks') || '[]'),
+  household_tasks: JSON.parse(localStorage.getItem('fh_tasks') || '[]'),
 };
 function saveLocal(table) {
   const keys = {shopping_items:'fh_shopping',appointments:'fh_appts',household_tasks:'fh_tasks'};
@@ -261,7 +266,7 @@ function saveLocal(table) {
 
 let db = null;
 try {
-  if (SURL && SURL.trim() !== '' && SURL !== 'https://nynvvnkaphtkdjtmtvzd.supabase.co') {
+  if (SURL && SURL.trim() !== '' && !SURL.includes('your-supabase-url')) {
     const {createClient} = supabase;
     db = createClient(SURL, SKEY);
   } else {
@@ -330,14 +335,6 @@ async function dbUpdate(table, id, patch) {
     return { error: null };
   }
   return await db.from(table).update(patch).eq('id', id);
-}
-async function dbDelete(table, id) {
-  if (useLocal) {
-    localDB[table] = localDB[table].filter(r => r.id !== id);
-    saveLocal(table);
-    return { error: null };
-  }
-  return await db.from(table).delete().eq('id', id);
 }
 
 // ── LOAD ───────────────────────────────────────────────────────────────────
@@ -428,12 +425,6 @@ async function toggleShop(id) {
   renderShop();
 }
 
-async function delShop(id) {
-  await dbDelete('shopping_items', id);
-  if (useLocal) { const { data: s } = await dbSelect('shopping_items'); data.shopping_items = s; }
-  renderShop(); showToast('Removed');
-}
-
 function renderShop() {
   const pending = data.shopping_items.filter(r => !r.done);
   const done    = data.shopping_items.filter(r =>  r.done);
@@ -461,7 +452,6 @@ function shopItemHTML(r) {
     </div>
     <div class="item-actions">
       <button class="act-btn" title="Edit" onclick="enableEditMode('${r.id}', \`${esc(r.title.replace(/`/g, '\\`'))}\`, 'shopping_items')">✏️</button>
-      <button class="act-btn del" onclick="delShop('${r.id}')">✕</button>
     </div>
   </div>`;
 }
@@ -478,6 +468,7 @@ function hideApptExtras() {
   document.getElementById('appt-add').disabled = true;
   document.getElementById('alert-hint').classList.remove('show');
   document.getElementById('appt-alert').checked = false;
+  document.getElementById('appt-repeat').checked = false;
 }
 function toggleAlertHint() {
   const checked = document.getElementById('appt-alert').checked;
@@ -490,9 +481,10 @@ async function addAppt() {
   const time  = document.getElementById('appt-time').value;
   const forWho= document.getElementById('appt-for').value;
   const alert15 = document.getElementById('appt-alert').checked;
+  const repeatWeekly = document.getElementById('appt-repeat').checked;
   const dt = date ? (time ? date + 'T' + time : date) : null;
   const { error } = await dbInsert('appointments', {
-    title, date_time: dt, for_who: forWho, alert_15min: alert15, added_by: currentUser.name
+    title, date_time: dt, for_who: forWho, alert_15min: alert15, repeat_weekly: repeatWeekly, added_by: currentUser.name
   });
   if (error) { showToast('Error adding appointment'); return; }
   hideApptExtras();
@@ -500,14 +492,6 @@ async function addAppt() {
   renderAppts();
   scheduleAllAlerts();
   showToast('Appointment added ✓');
-  if (alert15 && dt) showToast('🔔 Alert will fire 15 min before');
-}
-
-async function delAppt(id) {
-  clearAlertTimer(id);
-  await dbDelete('appointments', id);
-  if (useLocal) { const { data: a } = await dbSelect('appointments'); data.appointments = a; }
-  renderAppts(); showToast('Removed');
 }
 
 const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -536,40 +520,6 @@ function renderAppts() {
   badge.textContent = today; badge.style.display = today > 0 ? 'inline' : 'none';
 }
 
-function apptHTML(a) {
-  const isPast = a.date_time && new Date(a.date_time) < new Date();
-  let dayNum = '—', month = '—', dayName = '', timeStr = '';
-  if (a.date_time) {
-    const d = new Date(a.date_time);
-    dayNum = d.getDate(); month = MONTHS_SHORT[d.getMonth()];
-    dayName = DAYS[d.getDay()];
-    timeStr = a.date_time.includes('T') ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'All day';
-  }
-  const forMap = { Family:'👨‍👩‍👧 Family', Aarav:'🧒 Aarav', Aanya:'🧒 Aanya', Sanju:'👩 Sanju', Raki:'👨 Raki' };
-  return `<div class="appt-card ${isPast ? 'past' : ''}">
-    <div class="appt-date-block">
-      <div class="appt-month">${month}</div>
-      <div class="appt-day">${dayNum}</div>
-    </div>
-    <div class="appt-body">
-      <div id="title-area-${a.id}">
-         <div class="appt-title">${esc(a.title)}</div>
-      </div>
-      <div class="appt-time">
-        ${timeStr ? `<span>⏰ ${timeStr}</span>` : ''}
-        ${dayName ? `<span>${dayName}</span>` : ''}
-        <span class="badge badge-purple">${forMap[a.for_who] || a.for_who || ''}</span>
-      </div>
-      ${a.alert_15min && !isPast ? '<div class="appt-alert">🔔 Alert set 15 min before</div>' : ''}
-      <div style="font-size:11px;color:var(--muted);margin-top:4px">Added by ${a.added_by === currentUser.name ? 'you' : esc(a.added_by || '')}</div>
-    </div>
-    <div class="appt-actions">
-      <button class="act-btn" title="Edit" onclick="enableEditMode('${a.id}', \`${esc(a.title.replace(/`/g, '\\`'))}\`, 'appointments')">✏️</button>
-      <button class="act-btn del" onclick="delAppt('${a.id}')">✕</button>
-    </div>
-  </div>`;
-}
-
 // ── ALERTS ─────────────────────────────────────────────────────────────────
 function clearAlertTimers() { Object.values(alertTimers).forEach(clearTimeout); alertTimers = {}; }
 function clearAlertTimer(id) { if (alertTimers[id]) { clearTimeout(alertTimers[id]); delete alertTimers[id]; } }
@@ -593,6 +543,40 @@ function fireAlert(appt) {
   if ('Notification' in window && Notification.permission === 'granted') {
     new Notification(title, { body, icon: '' });
   }
+}
+
+function apptHTML(a) {
+  const isPast = a.date_time && new Date(a.date_time) < new Date();
+  let dayNum = '—', month = '—', dayName = '', timeStr = '';
+  if (a.date_time) {
+    const d = new Date(a.date_time);
+    dayNum = d.getDate(); month = MONTHS_SHORT[d.getMonth()];
+    dayName = DAYS[d.getDay()];
+    timeStr = a.date_time.includes('T') ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'All day';
+  }
+  const forMap = { Family:'👨‍👩‍👧 Family', Aarav:'🧒 Aarav', Aanya:'🧒 Aanya', Sanju:'👩 Sanju', Raki:'👨 Raki' };
+  return `<div class="appt-card ${isPast ? 'past' : ''}">
+    <div class="appt-date-block">
+      <div class="appt-month">${month}</div>
+      <div class="appt-day">${dayNum}</div>
+    </div>
+    <div class="appt-body">
+      <div id="title-area-${a.id}">
+         <div class="appt-title">${esc(a.title)}</div>
+      </div>
+      <div class="appt-time">
+        ${timeStr ? `<span>⏰ ${timeStr}</span>` : ''}
+        ${dayName ? `<span>${dayName}</span>` : ''}
+        <span class="badge badge-purple">${forMap[a.for_who] || a.for_who || ''}</span>
+        ${a.repeat_weekly ? `<span class="badge badge-green">🔁 Weekly</span>` : ''}
+      </div>
+      ${a.alert_15min && !isPast ? '<div class="appt-alert">🔔 Alert set 15 min before</div>' : ''}
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Added by ${a.added_by === currentUser.name ? 'you' : esc(a.added_by || '')}</div>
+    </div>
+    <div class="appt-actions">
+      <button class="act-btn" title="Edit" onclick="enableEditMode('${a.id}', \`${esc(a.title.replace(/`/g, '\\`'))}\`, 'appointments')">✏️</button>
+    </div>
+  </div>`;
 }
 
 // ── HOUSEHOLD TASKS ────────────────────────────────────────────────────────
@@ -623,12 +607,6 @@ async function toggleTask(id) {
   await dbUpdate('household_tasks', id, { done: !task.done, done_by: !task.done ? currentUser.name : null });
   if (useLocal) { const { data: t } = await dbSelect('household_tasks'); data.household_tasks = t; }
   renderTasks();
-}
-
-async function delTask(id) {
-  await dbDelete('household_tasks', id);
-  if (useLocal) { const { data: t } = await dbSelect('household_tasks'); data.household_tasks = t; }
-  renderTasks(); showToast('Removed');
 }
 
 const PRIO_COLOR = { high: 'p-high', med: 'p-med', low: 'p-low' };
@@ -662,7 +640,6 @@ function taskItemHTML(r) {
     </div>
     <div class="item-actions">
       <button class="act-btn" title="Edit" onclick="enableEditMode('${r.id}', \`${esc(r.title.replace(/`/g, '\\`'))}\`, 'household_tasks')">✏️</button>
-      <button class="act-btn del" onclick="delTask('${r.id}')">✕</button>
     </div>
   </div>`;
 }
@@ -679,7 +656,6 @@ function renderList(elId, items, htmlFn, type) {
   el.innerHTML = items.map(r => htmlFn(r)).join('');
 }
 
-// Keep active tab state accurate even when items refresh
 function setTab(tab) {
   currentTab = tab;
   ['shop','appt','tasks'].forEach(t => {
